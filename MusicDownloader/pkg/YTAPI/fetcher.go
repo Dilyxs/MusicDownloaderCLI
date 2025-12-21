@@ -3,11 +3,14 @@ package pkg
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"time"
 
+	youtube "github.com/kkdai/youtube/v2"
 	"github.com/subosito/gotenv"
 )
 
@@ -109,4 +112,39 @@ func FetchYoutubeDetails(userscontent string) ([]RelevantVideoData, error) {
 		RelevantVideos[i] = RelevantVideoData{Title: vid.VideoDetails.Title, Description: vid.VideoDetails.Description, ChannelTitle: vid.VideoDetails.ChannelTitle, VideoID: vid.ID.VideoID}
 	}
 	return RelevantVideos, nil
+}
+
+func DownloadAudio(videoID, filename string) error {
+	client := youtube.Client{}
+	video, err := client.GetVideo(videoID)
+	if err != nil {
+		return err
+	}
+	audioFormats := video.Formats.Type("audio")
+	if len(audioFormats) == 0 {
+		return fmt.Errorf("no audio format for this video")
+	}
+	audioFormats.Sort()
+	targetFormat := &audioFormats[0]
+
+	stream, _, err := client.GetStream(video, targetFormat)
+	if err != nil {
+		return err
+	}
+	defer stream.Close()
+	fileName := filename + ".m4a"
+	if targetFormat.MimeType == "audio/webm" {
+		fileName = "testing.webm"
+	}
+	filePath := filepath.Join(fileName)
+	file, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	_, err = io.Copy(file, stream)
+	if err != nil {
+		return err
+	}
+	return nil
 }
