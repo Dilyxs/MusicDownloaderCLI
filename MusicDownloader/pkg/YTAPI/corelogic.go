@@ -3,14 +3,16 @@ package pkg
 import (
 	"bufio"
 	"fmt"
+	"math/rand"
 	"os"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 const (
-	DownloaderWorkerCount   int = 20
+	DownloaderWorkerCount   int = 1
 	ErrorChannelWorkerCount int = 3
 	JobFetcherWorkerCount       = 20
 )
@@ -38,6 +40,7 @@ type Hub struct {
 	JobFetchedChannel    chan *Job
 	DownloadsChannel     chan *Job
 	ErrorChannel         chan *ErrorJob
+	RateLimitingChannel  chan *Job
 	DownloadLocation     string
 	mu                   sync.Mutex
 }
@@ -113,6 +116,9 @@ func GetUserInput(job *Job) {
 func DownloaderWorker(hub *Hub, wg *sync.WaitGroup, downloadDirectoryPath string) {
 	defer wg.Done()
 	for download := range hub.DownloadsChannel {
+		// let bro wait a little bit that so Google doesn't catch use for robotSpam
+		TimeToSleep := rand.Float32() * float32(rand.Int31n(25))
+		time.Sleep(time.Second * time.Duration(TimeToSleep))
 		err := DownloadAudio(download.UserChosenVideo.VideoID, download.UserChosenVideo.Title, downloadDirectoryPath)
 		if err != nil {
 			hub.ErrorChannel <- &ErrorJob{download, err}
