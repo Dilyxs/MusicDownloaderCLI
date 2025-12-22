@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path/filepath"
+	"path"
 	"time"
 
 	youtube "github.com/kkdai/youtube/v2"
@@ -94,7 +94,7 @@ func FetchYoutubeDetails(userscontent string) ([]RelevantVideoData, error) {
 	params.Add("part", YoutubePart)
 	params.Add("q", userscontent)
 	params.Add("key", apikey)
-	params.Add("maxResults", "25")
+	params.Add("maxResults", "5")
 	u.RawQuery = params.Encode()
 	resp, err := http.Get(u.String())
 	if resp.StatusCode != 200 || err != nil {
@@ -114,7 +114,27 @@ func FetchYoutubeDetails(userscontent string) ([]RelevantVideoData, error) {
 	return RelevantVideos, nil
 }
 
-func DownloadAudio(videoID, finaldownloadPath string) error {
+func CleanupUserWantedPath(userwantedpath string) string {
+	okrunes := []rune{}
+	for _, r := range userwantedpath {
+		switch {
+		case r >= 'a' && r <= 'z':
+			okrunes = append(okrunes, r)
+		case r >= 'A' && r <= 'Z':
+			okrunes = append(okrunes, r)
+		case r >= '0' && r <= '9':
+			okrunes = append(okrunes, r)
+		case r == '_' || r == '-' || r == '.':
+			okrunes = append(okrunes, r)
+		default:
+			okrunes = append(okrunes, '_')
+		}
+	}
+	return string(okrunes)
+}
+
+func DownloadAudio(videoID, userWantedTitle, finaldownloadPath string) error {
+	cleanDownloadPath := path.Join(finaldownloadPath, CleanupUserWantedPath(userWantedTitle))
 	client := youtube.Client{}
 	video, err := client.GetVideo(videoID)
 	if err != nil {
@@ -132,12 +152,8 @@ func DownloadAudio(videoID, finaldownloadPath string) error {
 		return err
 	}
 	defer stream.Close()
-	fileName := finaldownloadPath + ".m4a"
-	if targetFormat.MimeType == "audio/webm" {
-		fileName = "testing.webm"
-	}
-	filePath := filepath.Join(fileName)
-	file, err := os.Create(filePath)
+	fileName := cleanDownloadPath + ".m4a"
+	file, err := os.Create(fileName)
 	if err != nil {
 		return err
 	}

@@ -75,7 +75,6 @@ func FetcherWorker(wg *sync.WaitGroup, hub *Hub) {
 		}
 		newjob := &Job{UserPrompt: userintput, ID: hub.GetCounterValue(), VideoInfo: &PossibleSongs}
 		hub.JobFetchedChannel <- newjob
-		fmt.Println("JOB HAS BEEN SENT TO MAIN FOR CHOICE!")
 	}
 }
 
@@ -114,13 +113,13 @@ func GetUserInput(job *Job) {
 func DownloaderWorker(hub *Hub, wg *sync.WaitGroup, downloadDirectoryPath string) {
 	defer wg.Done()
 	for download := range hub.DownloadsChannel {
-		err := DownloadAudio(download.UserChosenVideo.VideoID, download.UserChosenVideo.Title)
+		err := DownloadAudio(download.UserChosenVideo.VideoID, download.UserChosenVideo.Title, downloadDirectoryPath)
 		if err != nil {
 			hub.ErrorChannel <- &ErrorJob{download, err}
 			return
 		}
 		hub.RemoveJob(download)
-		fmt.Printf("SONG DOWNLOADED! at %v", downloadDirectoryPath)
+		fmt.Printf("song download for : %v!\n", download.UserChosenVideo.Title)
 	}
 }
 
@@ -171,7 +170,6 @@ func Main(DownloadLocation string, songs []string) {
 	go func() {
 		SongFetcherWaitgroup.Wait()
 		close(hub.JobFetchedChannel)
-		fmt.Println("Fetcher boys are done!")
 	}()
 
 	// Start the Engine by pushing each song into the SongFetcherWorker's channel
@@ -189,8 +187,6 @@ func Main(DownloadLocation string, songs []string) {
 	close(hub.DownloadsChannel)
 
 	DownloadWorkerWaitgroup.Wait()
-	fmt.Println("done waiting for the downloads bros!")
 	close(hub.ErrorChannel)
-	fmt.Println("Error Channel closed!")
 	ErrorChannelWaitgroup.Wait()
 }
