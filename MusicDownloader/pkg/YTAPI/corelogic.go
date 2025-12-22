@@ -81,7 +81,12 @@ func FetcherWorker(wg *sync.WaitGroup, hub *Hub) {
 	}
 }
 
-func GetUserInput(job *Job) {
+func GetUserInput(job *Job, autoselect bool) {
+	// early exit, just pick option 0!
+	if autoselect {
+		job.UserChosenVideo = &(*job.VideoInfo)[0]
+		return
+	}
 	valueset := make(map[int]*RelevantVideoData)
 	fmt.Println("Pick the song which you want!")
 
@@ -92,7 +97,6 @@ func GetUserInput(job *Job) {
 
 	r := bufio.NewReader(os.Stdin)
 	var IsOkChosenVideo bool
-
 	for !IsOkChosenVideo {
 		fmt.Println("\npls pick the Video Title you find appropriate! ")
 
@@ -117,7 +121,7 @@ func DownloaderWorker(hub *Hub, wg *sync.WaitGroup, downloadDirectoryPath string
 	defer wg.Done()
 	for download := range hub.DownloadsChannel {
 		// let bro wait a little bit that so Google doesn't catch use for robotSpam
-		TimeToSleep := rand.Float32() * float32(rand.Int31n(25))
+		TimeToSleep := rand.Float32() * float32(rand.Int31n(3))
 		time.Sleep(time.Second * time.Duration(TimeToSleep))
 		err := DownloadAudio(download.UserChosenVideo.VideoID, download.UserChosenVideo.Title, downloadDirectoryPath)
 		if err != nil {
@@ -125,7 +129,7 @@ func DownloaderWorker(hub *Hub, wg *sync.WaitGroup, downloadDirectoryPath string
 			return
 		}
 		hub.RemoveJob(download)
-		fmt.Printf("song download for : %v!\n", download.UserChosenVideo.Title)
+		fmt.Printf("song downloaded for : %v!\n", download.UserChosenVideo.Title)
 	}
 }
 
@@ -137,7 +141,7 @@ func ErrorWorker(hub *Hub, wg *sync.WaitGroup) {
 	}
 }
 
-func Main(DownloadLocation string, songs []string) {
+func Main(DownloadLocation string, songs []string, autoselect bool) {
 	hub := Hub{
 		CounterID:            0,
 		Jobs:                 make(map[*Job]bool),
@@ -187,7 +191,7 @@ func Main(DownloadLocation string, songs []string) {
 
 	for job := range hub.JobFetchedChannel {
 		// Ask user for preferred video
-		GetUserInput(job)
+		GetUserInput(job, autoselect)
 		hub.DownloadsChannel <- job
 	}
 	close(hub.DownloadsChannel)
