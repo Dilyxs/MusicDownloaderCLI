@@ -114,7 +114,7 @@ func FetchYoutubeDetails(userscontent string) ([]RelevantVideoData, error) {
 	return RelevantVideos, nil
 }
 
-func DownloadAudio(videoID, filename string) error {
+func DownloadAudio(videoID, finaldownloadPath string) error {
 	client := youtube.Client{}
 	video, err := client.GetVideo(videoID)
 	if err != nil {
@@ -132,7 +132,7 @@ func DownloadAudio(videoID, filename string) error {
 		return err
 	}
 	defer stream.Close()
-	fileName := filename + ".m4a"
+	fileName := finaldownloadPath + ".m4a"
 	if targetFormat.MimeType == "audio/webm" {
 		fileName = "testing.webm"
 	}
