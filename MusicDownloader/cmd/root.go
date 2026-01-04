@@ -41,5 +41,5 @@ func Execute() {
 func init() {
 	home, _ := os.UserHomeDir()
 	path := filepath.Join(home, "Downloads")
-	rootCmd.Flags().String("installation-location", path, "Define the default download location of your music videos")
+	rootCmd.Flags().StringP("installation-location", "i", path, "Define the default download location of your music videos")
 }
