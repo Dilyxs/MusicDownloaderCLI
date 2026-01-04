@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -18,10 +19,7 @@ var rootCmd = &cobra.Command{
 	Long: `Basically give the song name and author name, and it will return possible options from which you
 	can choose to download from. Concurrency coming soon!`,
 	Run: func(cmd *cobra.Command, args []string) {
-		path, err := cmd.Root().Flags().GetString("installation-location")
-		if err != nil {
-			fmt.Printf("ran into err:%v", err)
-		}
+		path := viper.GetString("installation")
 		fmt.Printf("current installation-location is : %s", path)
 	},
 	// Uncomment the following line if your bare application
@@ -41,5 +39,6 @@ func Execute() {
 func init() {
 	home, _ := os.UserHomeDir()
 	path := filepath.Join(home, "Downloads")
-	rootCmd.Flags().StringP("installation-location", "i", path, "Define the default download location of your music videos")
+	rootCmd.PersistentFlags().StringP("installation", "i", path, "Define the default download location of your music videos")
+	viper.BindPFlag("installation", rootCmd.PersistentFlags().Lookup("installation"))
 }
